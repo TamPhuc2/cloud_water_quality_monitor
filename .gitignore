@@ -1,0 +1,49 @@
+# High-risk secrets, env files & private keys
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.ppk
+*.p12
+*.pfx
+*.crt
+*.csr
+id_rsa*
+id_ed25519*
+*secret*
+*credentials*
+
+# Terraform state & sensitive vars (future BTL)
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+override.tf
+override.tf.json
+
+# Low-risk docs containing real EC2 IP / Instance ID / Neon endpoint / local SSH path
+docs/CLOUD_VERIFICATION_REPORT.md
+docs/SEMINAR_ARCHITECTURE_AND_WORKFLOW_GUIDE.md
+
+# Raw datasets & logs
+*.csv
+*.log
+
+# Python virtualenvs & caches
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+
+# Generated benchmark outputs & screenshots
+benchmarks/results/*.json
+benchmarks/charts/*.png
+
+# OS & editor files
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

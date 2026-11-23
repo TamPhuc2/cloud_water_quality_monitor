@@ -1,0 +1,49 @@
+# Offline local development override (no Neon internet connection needed).
+# Usage:
+#   docker compose -f compose.yaml -f compose.local.yaml up -d --build
+#
+# Security note: PostgreSQL stays on internal Docker network water_net only
+# and intentionally publishes NO host port.
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: wq-local-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${LOCAL_PG_USER:-water_user}
+      POSTGRES_PASSWORD: ${LOCAL_PG_PASSWORD:-water_local_pass}
+      POSTGRES_DB: ${LOCAL_PG_DB:-water_db}
+    volumes:
+      - ./db/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql:ro
+      - local_pg_data:/var/lib/postgresql/data
+    networks:
+      - water_net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${LOCAL_PG_USER:-water_user} -d ${LOCAL_PG_DB:-water_db}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  consumer:
+    depends_on:
+      kafka-init:
+        condition: service_completed_successfully
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://${LOCAL_PG_USER:-water_user}:${LOCAL_PG_PASSWORD:-water_local_pass}@postgres:5432/${LOCAL_PG_DB:-water_db}?sslmode=disable
+
+  grafana:
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      NEON_HOST: postgres
+      NEON_DB: ${LOCAL_PG_DB:-water_db}
+      NEON_USER: ${LOCAL_PG_USER:-water_user}
+      NEON_PASSWORD: ${LOCAL_PG_PASSWORD:-water_local_pass}
+      PG_SSLMODE: disable
+
+volumes:
+  local_pg_data:

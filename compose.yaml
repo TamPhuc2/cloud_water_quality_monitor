@@ -1,0 +1,115 @@
+services:
+  kafka:
+    image: confluentinc/cp-kafka:7.7.1
+    container_name: wq-kafka
+    restart: unless-stopped
+    ports:
+      # Bind ONLY to loopback so Kafka is never exposed to the public Internet.
+      # Local laptop connects securely over SSH tunnel:
+      #   ssh -i key.pem -N -L 19092:127.0.0.1:19092 ubuntu@<EC2_PUBLIC_IP>
+      - "127.0.0.1:19092:19092"
+    environment:
+      CLUSTER_ID: ${KAFKA_CLUSTER_ID:-MkU3OEVBNTcwNTJENDM2Qk}
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:29093
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_INTER_BROKER_LISTENER_NAME: INTERNAL
+      KAFKA_LISTENERS: INTERNAL://0.0.0.0:9092,EXTERNAL://0.0.0.0:19092,CONTROLLER://0.0.0.0:29093
+      KAFKA_ADVERTISED_LISTENERS: INTERNAL://kafka:9092,EXTERNAL://127.0.0.1:19092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: CONTROLLER:PLAINTEXT,INTERNAL:PLAINTEXT,EXTERNAL:PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "false"
+      KAFKA_LOG_DIRS: /var/lib/kafka/data
+      KAFKA_HEAP_OPTS: "-Xms512m -Xmx768m"
+    volumes:
+      - kafka_data:/var/lib/kafka/data
+    networks:
+      - water_net
+    healthcheck:
+      test: ["CMD-SHELL", "kafka-broker-api-versions --bootstrap-server localhost:9092 >/dev/null 2>&1"]
+      interval: 10s
+      timeout: 10s
+      retries: 10
+      start_period: 20s
+
+  kafka-init:
+    image: confluentinc/cp-kafka:7.7.1
+    container_name: wq-kafka-init
+    restart: "no"
+    depends_on:
+      kafka:
+        condition: service_healthy
+    environment:
+      KAFKA_TOPIC: ${KAFKA_TOPIC:-water-quality-events}
+      KAFKA_PARTITIONS: ${KAFKA_PARTITIONS:-3}
+    command:
+      - bash
+      - -ec
+      - |
+        kafka-topics --bootstrap-server kafka:9092 --create --if-not-exists \
+          --topic "$${KAFKA_TOPIC}" \
+          --partitions "$${KAFKA_PARTITIONS}" \
+          --replication-factor 1
+        kafka-topics --bootstrap-server kafka:9092 --describe --topic "$${KAFKA_TOPIC}"
+    networks:
+      - water_net
+
+  consumer:
+    build:
+      context: ./consumer
+      dockerfile: Dockerfile
+    container_name: wq-consumer
+    restart: unless-stopped
+    depends_on:
+      kafka-init:
+        condition: service_completed_successfully
+    env_file:
+      - path: .env
+        required: false
+    environment:
+      KAFKA_BOOTSTRAP_SERVERS: kafka:9092
+      KAFKA_TOPIC: ${KAFKA_TOPIC:-water-quality-events}
+      KAFKA_CONSUMER_GROUP: ${KAFKA_CONSUMER_GROUP:-water-quality-consumer}
+      DATABASE_URL: ${DATABASE_URL}
+      CONSUMER_MODE: ${CONSUMER_MODE:-batch}
+      CONSUMER_BATCH_SIZE: ${CONSUMER_BATCH_SIZE:-100}
+      CONSUMER_BATCH_TIMEOUT_MS: ${CONSUMER_BATCH_TIMEOUT_MS:-500}
+      CONSUMER_CRASH_AFTER_DB_COMMIT: ${CONSUMER_CRASH_AFTER_DB_COMMIT:-false}
+      CONSUMER_CRASH_TARGET_INDEX: ${CONSUMER_CRASH_TARGET_INDEX:-0}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+    networks:
+      - water_net
+
+  grafana:
+    image: grafana/grafana:11.3.0
+    container_name: wq-grafana
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-admin_change_me}
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_PATHS_PROVISIONING: /etc/grafana/provisioning
+      NEON_HOST: ${NEON_HOST}
+      NEON_DB: ${NEON_DB:-neondb}
+      NEON_USER: ${NEON_USER}
+      NEON_PASSWORD: ${NEON_PASSWORD}
+      PG_SSLMODE: ${PG_SSLMODE:-require}
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      - grafana_data:/var/lib/grafana
+    networks:
+      - water_net
+
+volumes:
+  kafka_data:
+  grafana_data:
+
+networks:
+  water_net:
+    driver: bridge

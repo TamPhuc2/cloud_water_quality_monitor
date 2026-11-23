@@ -1,0 +1,704 @@
+{
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": {
+          "type": "grafana",
+          "uid": "-- Grafana --"
+        },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [],
+  "panels": [
+    {
+      "datasource": {
+        "type": "postgres",
+        "uid": "neon-postgres"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#2DD4BF",
+                "value": null
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 0,
+        "y": 0
+      },
+      "id": 1,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": ["lastNotNull"],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "postgres",
+            "uid": "neon-postgres"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT COUNT(*)::bigint AS total_ingested FROM water_measurements WHERE ('ALL' IN (${run_id:sqlstring}) OR run_id IN (${run_id:sqlstring})) AND ('ALL' IN (${determinand:sqlstring}) OR determinand IN (${determinand:sqlstring}));",
+          "refId": "A"
+        }
+      ],
+      "title": "Total Ingested Measurements",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "postgres",
+        "uid": "neon-postgres"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#38BDF8",
+                "value": null
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 6,
+        "y": 0
+      },
+      "id": 2,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": ["lastNotNull"],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "postgres",
+            "uid": "neon-postgres"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT COUNT(*)::bigint AS rejected_noise FROM rejected_events WHERE ('ALL' IN (${run_id:sqlstring}) OR run_id IN (${run_id:sqlstring}));",
+          "refId": "A"
+        }
+      ],
+      "title": "Rejected / Noise Events",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "postgres",
+        "uid": "neon-postgres"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#2DD4BF",
+                "value": null
+              },
+              {
+                "color": "#FBBF24",
+                "value": 1
+              },
+              {
+                "color": "#F87171",
+                "value": 20
+              }
+            ]
+          },
+          "unit": "short"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 12,
+        "y": 0
+      },
+      "id": 3,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "area",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": ["lastNotNull"],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "postgres",
+            "uid": "neon-postgres"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT COUNT(*)::bigint AS active_alerts FROM water_measurements WHERE alert_level IN ('WARNING', 'CRITICAL') AND ('ALL' IN (${run_id:sqlstring}) OR run_id IN (${run_id:sqlstring})) AND ('ALL' IN (${determinand:sqlstring}) OR determinand IN (${determinand:sqlstring}));",
+          "refId": "A"
+        }
+      ],
+      "title": "Threshold Alerts (WARN / CRIT)",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "postgres",
+        "uid": "neon-postgres"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "thresholds"
+          },
+          "mappings": [],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "#2DD4BF",
+                "value": null
+              },
+              {
+                "color": "#FBBF24",
+                "value": 1000
+              },
+              {
+                "color": "#F87171",
+                "value": 3000
+              }
+            ]
+          },
+          "unit": "ms"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 6,
+        "x": 18,
+        "y": 0
+      },
+      "id": 4,
+      "options": {
+        "colorMode": "value",
+        "graphMode": "none",
+        "justifyMode": "auto",
+        "orientation": "auto",
+        "reduceOptions": {
+          "calcs": ["lastNotNull"],
+          "fields": "",
+          "values": false
+        },
+        "textMode": "auto"
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "postgres",
+            "uid": "neon-postgres"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT COALESCE(ROUND((percentile_cont(0.95) WITHIN GROUP (ORDER BY EXTRACT(EPOCH FROM (ingested_at - produced_at)) * 1000))::numeric, 2), 0)::double precision AS p95_latency_ms FROM water_measurements WHERE ('ALL' IN (${run_id:sqlstring}) OR run_id IN (${run_id:sqlstring})) AND ('ALL' IN (${determinand:sqlstring}) OR determinand IN (${determinand:sqlstring}));",
+          "refId": "A"
+        }
+      ],
+      "title": "P95 End-to-End Latency",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "postgres",
+        "uid": "neon-postgres"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "fillOpacity": 20,
+            "lineInterpolation": "smooth",
+            "lineWidth": 2,
+            "showPoints": "auto"
+          },
+          "unit": "ops"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 7,
+        "w": 12,
+        "x": 0,
+        "y": 4
+      },
+      "id": 5,
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "single"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "postgres",
+            "uid": "neon-postgres"
+          },
+          "editorMode": "code",
+          "format": "time_series",
+          "rawQuery": true,
+          "rawSql": "SELECT date_trunc('second', ingested_at) AS \"time\", COUNT(*)::double precision AS \"events/sec\" FROM water_measurements WHERE $__timeFilter(ingested_at) AND ('ALL' IN (${run_id:sqlstring}) OR run_id IN (${run_id:sqlstring})) AND ('ALL' IN (${determinand:sqlstring}) OR determinand IN (${determinand:sqlstring})) GROUP BY 1 ORDER BY 1;",
+          "refId": "A"
+        }
+      ],
+      "title": "Ingestion Throughput (events/sec by ingested_at)",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "postgres",
+        "uid": "neon-postgres"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "fillOpacity": 15,
+            "lineInterpolation": "smooth",
+            "lineWidth": 2,
+            "showPoints": "auto"
+          },
+          "unit": "ms"
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 7,
+        "w": 12,
+        "x": 12,
+        "y": 4
+      },
+      "id": 6,
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "postgres",
+            "uid": "neon-postgres"
+          },
+          "editorMode": "code",
+          "format": "time_series",
+          "rawQuery": true,
+          "rawSql": "SELECT date_trunc('second', ingested_at) AS \"time\", ROUND(AVG(EXTRACT(EPOCH FROM (ingested_at - produced_at)) * 1000)::numeric, 2)::double precision AS \"avg_ms\", ROUND((percentile_cont(0.95) WITHIN GROUP (ORDER BY EXTRACT(EPOCH FROM (ingested_at - produced_at)) * 1000))::numeric, 2)::double precision AS \"p95_ms\" FROM water_measurements WHERE $__timeFilter(ingested_at) AND ('ALL' IN (${run_id:sqlstring}) OR run_id IN (${run_id:sqlstring})) AND ('ALL' IN (${determinand:sqlstring}) OR determinand IN (${determinand:sqlstring})) GROUP BY 1 ORDER BY 1;",
+          "refId": "A"
+        }
+      ],
+      "title": "End-to-End Pipeline Latency (Producer -> Neon DB)",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "postgres",
+        "uid": "neon-postgres"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "drawStyle": "line",
+            "fillOpacity": 10,
+            "lineInterpolation": "linear",
+            "lineWidth": 2,
+            "showPoints": "auto"
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 7,
+        "w": 12,
+        "x": 0,
+        "y": 11
+      },
+      "id": 7,
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "postgres",
+            "uid": "neon-postgres"
+          },
+          "editorMode": "code",
+          "format": "time_series",
+          "rawQuery": true,
+          "rawSql": "SELECT date_trunc('second', ingested_at) AS \"time\", determinand AS metric, AVG(result_value)::double precision AS \"value\" FROM water_measurements WHERE $__timeFilter(ingested_at) AND ('ALL' IN (${run_id:sqlstring}) OR run_id IN (${run_id:sqlstring})) AND ('ALL' IN (${determinand:sqlstring}) OR determinand IN (${determinand:sqlstring})) GROUP BY 1, 2 ORDER BY 1;",
+          "refId": "A"
+        }
+      ],
+      "title": "Live Water Quality Values (by Ingestion Time)",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "postgres",
+        "uid": "neon-postgres"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": {
+            "mode": "palette-classic"
+          },
+          "custom": {
+            "axisBorderShow": false,
+            "fillOpacity": 80,
+            "lineWidth": 1
+          }
+        },
+        "overrides": []
+      },
+      "gridPos": {
+        "h": 7,
+        "w": 12,
+        "x": 12,
+        "y": 11
+      },
+      "id": 8,
+      "options": {
+        "barRadius": 0.08,
+        "barWidth": 0.7,
+        "groupWidth": 0.7,
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom",
+          "showLegend": true
+        },
+        "orientation": "auto",
+        "showValue": "auto",
+        "stacking": "none",
+        "tooltip": {
+          "mode": "multi"
+        },
+        "xTickLabelRotation": 0
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "postgres",
+            "uid": "neon-postgres"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT to_char(event_time, 'YYYY-MM') AS sampling_month, COUNT(*)::bigint AS samples, ROUND(AVG(result_value)::numeric, 2)::double precision AS avg_value FROM water_measurements WHERE ('ALL' IN (${run_id:sqlstring}) OR run_id IN (${run_id:sqlstring})) AND ('ALL' IN (${determinand:sqlstring}) OR determinand IN (${determinand:sqlstring})) GROUP BY 1 ORDER BY 1;",
+          "refId": "A"
+        }
+      ],
+      "title": "2025 Historical Sampling Distribution (by Event Month)",
+      "type": "barchart"
+    },
+    {
+      "datasource": {
+        "type": "postgres",
+        "uid": "neon-postgres"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto"
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "alert_level"
+            },
+            "properties": [
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "options": {
+                      "CRITICAL": {
+                        "color": "red",
+                        "index": 0
+                      },
+                      "WARNING": {
+                        "color": "orange",
+                        "index": 1
+                      }
+                    },
+                    "type": "value"
+                  }
+                ]
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-text"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 7,
+        "w": 8,
+        "x": 0,
+        "y": 18
+      },
+      "id": 9,
+      "options": {
+        "showHeader": true
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "postgres",
+            "uid": "neon-postgres"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT determinand, alert_level, COUNT(*)::bigint AS alert_count FROM water_measurements WHERE alert_level <> 'NORMAL' AND ('ALL' IN (${run_id:sqlstring}) OR run_id IN (${run_id:sqlstring})) AND ('ALL' IN (${determinand:sqlstring}) OR determinand IN (${determinand:sqlstring})) GROUP BY 1, 2 ORDER BY alert_count DESC;",
+          "refId": "A"
+        }
+      ],
+      "title": "Alert Breakdown by Determinand & Level",
+      "type": "table"
+    },
+    {
+      "datasource": {
+        "type": "postgres",
+        "uid": "neon-postgres"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "align": "auto"
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "alert_level"
+            },
+            "properties": [
+              {
+                "id": "mappings",
+                "value": [
+                  {
+                    "options": {
+                      "CRITICAL": {
+                        "color": "red",
+                        "index": 0
+                      },
+                      "NORMAL": {
+                        "color": "green",
+                        "index": 2
+                      },
+                      "WARNING": {
+                        "color": "orange",
+                        "index": 1
+                      }
+                    },
+                    "type": "value"
+                  }
+                ]
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-text"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "gridPos": {
+        "h": 7,
+        "w": 16,
+        "x": 8,
+        "y": 18
+      },
+      "id": 10,
+      "options": {
+        "showHeader": true
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "postgres",
+            "uid": "neon-postgres"
+          },
+          "editorMode": "code",
+          "format": "table",
+          "rawQuery": true,
+          "rawSql": "SELECT ingested_at, event_time, station_name, determinand, result_value, unit, alert_level, run_id FROM water_measurements WHERE ('ALL' IN (${run_id:sqlstring}) OR run_id IN (${run_id:sqlstring})) AND ('ALL' IN (${determinand:sqlstring}) OR determinand IN (${determinand:sqlstring})) ORDER BY ingested_at DESC LIMIT 50;",
+          "refId": "A"
+        }
+      ],
+      "title": "Latest Ingested Water-Quality Events",
+      "type": "table"
+    }
+  ],
+  "refresh": "5s",
+  "schemaVersion": 39,
+  "style": "dark",
+  "tags": ["cloud-computing", "water-quality", "n12-l01"],
+  "templating": {
+    "list": [
+      {
+        "allValue": "'ALL'",
+        "current": {
+          "selected": true,
+          "text": "All",
+          "value": "$__all"
+        },
+        "datasource": {
+          "type": "postgres",
+          "uid": "neon-postgres"
+        },
+        "definition": "SELECT DISTINCT run_id FROM water_measurements ORDER BY run_id DESC;",
+        "hide": 0,
+        "includeAll": true,
+        "label": "Run ID",
+        "multi": false,
+        "name": "run_id",
+        "options": [],
+        "query": "SELECT DISTINCT run_id FROM water_measurements ORDER BY run_id DESC;",
+        "refresh": 2,
+        "sort": 0,
+        "type": "query"
+      },
+      {
+        "allValue": "'ALL'",
+        "current": {
+          "selected": true,
+          "text": "All",
+          "value": "$__all"
+        },
+        "datasource": {
+          "type": "postgres",
+          "uid": "neon-postgres"
+        },
+        "definition": "SELECT DISTINCT determinand FROM water_measurements ORDER BY determinand;",
+        "hide": 0,
+        "includeAll": true,
+        "label": "Determinand",
+        "multi": true,
+        "name": "determinand",
+        "options": [],
+        "query": "SELECT DISTINCT determinand FROM water_measurements ORDER BY determinand;",
+        "refresh": 2,
+        "sort": 1,
+        "type": "query"
+      }
+    ]
+  },
+  "time": {
+    "from": "now-1h",
+    "to": "now"
+  },
+  "timepicker": {},
+  "timezone": "browser",
+  "title": "Water Quality Cloud Monitoring (N12-L01)",
+  "uid": "wq-cloud-n12-l01",
+  "version": 1
+}
