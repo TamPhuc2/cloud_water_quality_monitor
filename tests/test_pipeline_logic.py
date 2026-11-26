@@ -19,7 +19,7 @@ from generate_charts import (  # noqa: E402
     render_throughput_chart,
     sample_preview_data,
 )
-from replay_producer import csv_row_to_event  # noqa: E402
+from replay_producer import csv_row_to_event, default_csv_path  # noqa: E402
 
 
 class _FakeCursor:
@@ -161,3 +161,18 @@ def test_generate_preview_charts_smoke(tmp_path: Path):
 
     assert t_chart.is_file() and t_chart.stat().st_size > 20_000
     assert r_chart.is_file() and r_chart.stat().st_size > 20_000
+
+
+def test_default_csv_path_prefers_project_data_dir():
+    resolved = default_csv_path()
+    assert resolved == PROJECT_ROOT / "data" / "2025-C - Copy.csv"
+    assert resolved.is_file()
+
+
+def test_schema_and_init_db_expect_three_tables():
+    sys.path.insert(0, str(PROJECT_ROOT / "db"))
+    from init_db import EXPECTED_TABLES  # noqa: E402
+
+    assert set(EXPECTED_TABLES) == {"water_measurements", "rejected_events", "pipeline_runs"}
+    schema_sql = (PROJECT_ROOT / "db" / "schema.sql").read_text(encoding="utf-8")
+    assert "ml_predictions" not in schema_sql

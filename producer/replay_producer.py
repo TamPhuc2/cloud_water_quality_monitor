@@ -32,8 +32,8 @@ CORE_DETERMINANDS = frozenset(
 
 
 def default_csv_path() -> Path:
-    """Resolve the full 2025 CSV dataset, falling back to the sample file."""
-    data_dir = Path(__file__).resolve().parent.parent.parent / "Đánh giá mô hình"
+    """Resolve the 2025 CSV dataset from water-quality-cloud/data/."""
+    data_dir = Path(__file__).resolve().parent.parent / "data"
     full_csv = data_dir / "2025-C - Copy.csv"
     if full_csv.is_file():
         return full_csv

@@ -1,7 +1,7 @@
 -- ============================================================
 -- Water Quality Cloud Monitoring Schema (PostgreSQL 16 / Neon)
 -- Supports Seminar MVP (idempotent streaming ingestion & alerts)
--- and Phase 2 BTL (ml_predictions hook table).
+-- and BTL (pipeline_runs tracking & station summary SQL View).
 -- ============================================================
 
 CREATE TABLE IF NOT EXISTS water_measurements (
@@ -62,18 +62,4 @@ CREATE TABLE IF NOT EXISTS pipeline_runs (
     planned_events  INTEGER,
     started_at      TIMESTAMPTZ NOT NULL DEFAULT clock_timestamp(),
     finished_at     TIMESTAMPTZ
-);
-
-
--- Phase 2 (BTL) hook table for decoupled ML prediction & imputation worker
-CREATE TABLE IF NOT EXISTS ml_predictions (
-    run_id          TEXT NOT NULL,
-    event_id        TEXT NOT NULL,
-    station_id      TEXT NOT NULL,
-    determinand     TEXT NOT NULL,
-    model_name      TEXT NOT NULL,
-    predicted_value DOUBLE PRECISION NOT NULL,
-    is_imputed      BOOLEAN NOT NULL DEFAULT FALSE,
-    predicted_at    TIMESTAMPTZ NOT NULL DEFAULT clock_timestamp(),
-    PRIMARY KEY (run_id, event_id, model_name)
 );

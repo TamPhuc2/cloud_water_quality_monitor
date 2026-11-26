@@ -63,7 +63,7 @@ if ($Phase -in @("all", "single")) {
     Write-Host "`n[Step 2/4] Sustained 1000 @ 100/s SINGLE-COMMIT baseline." -ForegroundColor Yellow
     Write-Host "On EC2, set CONSUMER_MODE=single in .env and run: docker compose up -d consumer" -ForegroundColor Yellow
     Read-Host "Press ENTER once EC2 consumer is running in SINGLE mode"
-    Invoke-BenchmarkRun -PhaseTag "sustained-single" -Rate 100 -MaxEvents 1000 -WaitTimeout 300
+    Invoke-BenchmarkRun -PhaseTag "sustained-single" -Rate 100 -MaxEvents 1000 -WaitTimeout 480
 }
 
 if ($Phase -in @("all", "batch")) {
@@ -96,7 +96,7 @@ if ($Phase -in @("all", "crash")) {
     Write-Host "`nVerify the one-shot container exited with code 77 (INJECTED_CRASH_AFTER_DB_COMMIT)." -ForegroundColor Yellow
     Write-Host "Now start normal BATCH consumer on EC2 to replay uncommitted offsets:" -ForegroundColor Yellow
     Write-Host "  docker compose up -d consumer" -ForegroundColor Cyan
-    Read-Host "Press ENTER once normal EC2 consumer has started and logged DEDUP_REPLAY"
+    Read-Host "Press ENTER once normal EC2 consumer has started and processed the replayed batch (DEDUP_REPLAY / BATCH_COMMITTED)"
 
     & $PythonExe (Join-Path $PSScriptRoot "evaluate_run.py") `
         --run-id $CrashRunId `

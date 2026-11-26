@@ -37,11 +37,14 @@ water-quality-cloud/
 ├── compose.yaml                     # Stack chạy trên AWS EC2 (Kafka KRaft, Consumer, Grafana -> Neon)
 ├── compose.local.yaml               # Override chạy offline hoàn toàn bằng PostgreSQL Docker local
 ├── .env.example                     # Mẫu biến môi trường (12-Factor config)
+├── memory.md                        # Bộ nhớ dự án: tiến độ đã làm & quy tắc bắt buộc
+├── data/
+│   └── 2025-C - Copy.csv            # Bộ dữ liệu CSV 2025 đang sử dụng (gitignored, kèm .gitkeep)
 ├── db/
-│   ├── schema.sql                   # Schema: water_measurements, rejected_events, pipeline_runs, ml_predictions
-│   └── init_db.py                   # Script khởi tạo & kiểm tra bảng trên Neon PostgreSQL
+│   ├── schema.sql                   # Schema: water_measurements, rejected_events, pipeline_runs
+│   └── init_db.py                   # Script khởi tạo & kiểm tra 3 bảng trên Neon PostgreSQL
 ├── producer/
-│   ├── replay_producer.py           # Đọc CSV 2025, phát JSON vào Kafka với rate limiter & report JSON
+│   ├── replay_producer.py           # Đọc CSV 2025 từ data/, phát JSON vào Kafka với rate limiter & report JSON
 │   └── requirements.txt
 ├── consumer/
 │   ├── Dockerfile                   # Non-root Python 3.12 container
@@ -58,14 +61,15 @@ water-quality-cloud/
 ├── benchmarks/
 │   ├── evaluate_run.py              # Đo throughput, p50/p95/max latency, trùng lặp và Kafka lag
 │   ├── generate_charts.py           # Sinh ảnh PNG dark-theme chuẩn slide từ JSON kết quả Cloud
+│   ├── generate_canva_assets.py     # Sinh 4 ảnh PNG nền sáng cho slide Canva
 │   └── run_seminar_benchmarks.ps1   # Tự động hóa 4 bài test Seminar qua SSH tunnel
 ├── tests/                           # Unit & smoke tests (pytest)
 └── docs/
-    ├── SEMINAR_ARCHITECTURE_AND_WORKFLOW_GUIDE.md # Giải thích chi tiết kiến trúc, workflow & công nghệ
-    ├── CLOUD_VERIFICATION_REPORT.md     # Báo cáo số liệu đo thật trên AWS EC2 & Neon DB
-    ├── DEPLOY_EC2_NEON_GUIDE.md         # Hướng dẫn triển khai từng bước lên Neon & AWS EC2 (<60 phút)
-    ├── SEMINAR_ACTION_PLAN_AND_SLIDES.md # Kế hoạch 4 ngày, chia việc 5 người, sửa 12 slide & Q&A
-    └── BTL_CLOUD_NATIVE_ROADMAP.md      # Lộ trình mở rộng BTL (Terraform, Elasticity, Secrets, ML Worker)
+    ├── BEGINNER_SYSTEM_AND_SLIDE_GUIDE.md   # Giải thích từ số 0 cho người mới & đối chiếu 19 slide Canva
+    ├── OFFLINE_ONLINE_STEP_BY_STEP_GUIDE.md # Hướng dẫn chi tiết từng bước chạy Offline & Online
+    ├── OFFLINE_ONLINE_EXECUTION_FLOW.md     # Giải thích luồng hoạt động chi tiết khi chạy Offline & Online
+    ├── BTL_CLOUD_NATIVE_ROADMAP.md          # Lộ trình Bài tập lớn 12/12 (Nhóm 1 & Nhóm 2)
+    └── CLOUD_VERIFICATION_REPORT.md         # Báo cáo số liệu đo thật trên AWS EC2 & Neon DB (gitignored)
 ```
 
 ## Quickstart nhanh
@@ -83,6 +87,8 @@ python -m venv .venv
 
 Mở Grafana tại `http://localhost:3000` (user/password trong `.env`).
 
+Xem hướng dẫn đầy đủ cho cả hai chế độ **Offline** & **Online** tại [OFFLINE_ONLINE_STEP_BY_STEP_GUIDE.md](docs/OFFLINE_ONLINE_STEP_BY_STEP_GUIDE.md) và giải thích luồng hoạt động tại [OFFLINE_ONLINE_EXECUTION_FLOW.md](docs/OFFLINE_ONLINE_EXECUTION_FLOW.md).
+
 ### 2. Triển khai thật lên AWS EC2 + Neon PostgreSQL
 
-Xem hướng dẫn chi tiết từng lệnh copy-paste trong [DEPLOY_EC2_NEON_GUIDE.md](docs/DEPLOY_EC2_NEON_GUIDE.md).
+Xem hướng dẫn chi tiết từng lệnh copy-paste trong phần **Online** của [OFFLINE_ONLINE_STEP_BY_STEP_GUIDE.md](docs/OFFLINE_ONLINE_STEP_BY_STEP_GUIDE.md).

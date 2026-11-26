@@ -1,12 +1,6 @@
-# Lộ trình nâng cấp Bài tập lớn (BTL): Cloud-Native Elasticity & ML Worker
+# Lộ trình Bài tập lớn (BTL — Hạn nộp 12/12/2026): Tối ưu Pipeline Cloud (Nhóm 1 & Nhóm 2)
 
-Tài liệu này mô tả lộ trình chuyển tiếp trực tiếp từ **Seminar MVP (`water-quality-cloud/`)** lên **Bài tập lớn hoàn chỉnh** theo đúng định hướng đã chốt: **Cloud-native & Elasticity thật + ML Worker nhẹ cho `BOD ATU` & `Ammonia(N)`**.
-
-Kiến trúc Seminar hiện tại đã đặt sẵn 4 nền móng để BTL không phải viết lại từ đầu:
-1. Kafka topic chia sẵn **multi-partition** (tăng từ `3` lên `6` partitions, partition key = `station_id`).
-2. Consumer đọc cấu hình 100% qua biến môi trường (12-Factor) và log JSON ra `stdout`.
-3. Neon PostgreSQL đã có sẵn bảng **`ml_predictions`**.
-4. Producer tách biệt ở Client Edge, dễ chuyển sang HTTPS API khi cần.
+Tài liệu này chốt **phạm vi thực tế và khả thi** để chuyển tiếp từ **Seminar MVP (`water-quality-cloud/`)** lên **Bài tập lớn (12/12/2026)**. Để phù hợp quỹ thời gian của nhóm, BTL tập trung tối ưu sâu chính pipeline hiện tại theo **2 nhóm hạng mục** (chủ động cắt bỏ các phần vận hành nặng).
 
 ---
 
@@ -14,60 +8,50 @@ Kiến trúc Seminar hiện tại đã đặt sẵn 4 nền móng để BTL khô
 
 ```mermaid
 flowchart LR
-    Edge["Laptop / IoT Simulator"] -->|"HTTPS POST + API Key"| ALB["AWS ALB / HTTPS Reverse Proxy"]
-    ALB --> GW["FastAPI Ingestion Gateway"]
-    GW --> MSK["Kafka Cluster (6 Partitions)"]
+    Edge["Laptop / Nhiều Client Edge"] -->|"SSH Tunnel (mặc định)<br/>hoặc HTTPS POST + X-API-Key (Nhóm 2)"| GW["FastAPI Ingestion Gateway<br/>(sau Caddy/Nginx HTTPS)"]
+    GW --> KAFKA["Kafka KRaft (EC2 ap-southeast-1)\n3 Partitions | key = station_id"]
+    KAFKA --> CONS["Python Consumer\n1. Validate + Alert\n2. Batch UNNEST -> Neon\n3. Log DEDUP_REPLAY cả rejected_events"]
 
-    subgraph ECS["AWS ECS / EC2 Auto Scaling Group"]
-        C1["Consumer Worker 1..N\n(Auto-scale theo Kafka Lag / CPU)"]
-        ML["ML Inference Worker\n(Group: ml-worker)"]
-    end
-
-    MSK -->|"Group: water-quality-consumer"| C1
-    MSK -->|"Group: ml-worker"| ML
-
-    C1 -->|"Secrets Manager + TLS"| NEON[("Neon Managed PostgreSQL 16")]
-    ML -->|"Ghi ml_predictions"| NEON
-    ECS -->|"JSON stdout"| CW["AWS CloudWatch Logs & Metrics"]
-    GRAF["Grafana (HTTPS)"] --> NEON
-    GRAF --> CW
+    CONS -->|"TLS 5432 + ON CONFLICT"| NEON[("Neon Serverless PostgreSQL 16 (ap-southeast-1)\n- water_measurements\n- rejected_events\n- pipeline_runs\n- v_station_water_summary (SQL View)")]
+    CONS -->|"CRITICAL Alert\nHTTP Trigger"| LAMBDA["AWS Lambda ($0)\nTelegram / Discord Alert"]
+    GRAF["Grafana 11.3 (EC2)\n10 Panels + Station Summary View"] -->|"SQL Query TLS 5432"| NEON
 ```
 
 ---
 
-## 4 Trụ cột nâng cấp trong BTL
+## Nhóm 1 — Ưu tiên cao (Bắt buộc hoàn thành, ~2–3 giờ)
 
-### Trụ cột 1 — Infrastructure as Code (Terraform)
-Tạo thư mục `infra/terraform/` quản lý toàn bộ tài nguyên AWS thay vì bấm tay trên Console:
-- VPC, Public/Private Subnets, Security Groups chuẩn nguyên tắc tối thiểu đặc quyền.
-- AWS Secrets Manager lưu `DATABASE_URL` và `GRAFANA_ADMIN_PASSWORD`.
-- AWS CloudWatch Log Group (`/water-quality/consumer`, `/water-quality/ml-worker`) và CloudWatch Alarms.
-- ECS Cluster + Task Definitions + Auto Scaling Policy (hoặc EC2 Launch Template + ASG).
+### 1.1. SQL View tổng hợp chất lượng nước theo trạm
+- Bổ sung `CREATE OR REPLACE VIEW v_station_water_summary AS ...` vào `db/schema.sql`.
+- Tự động tổng hợp theo từng `station_id` (`station_name`): tổng số mẫu hợp lệ, giá trị trung bình / lớn nhất theo từng chỉ tiêu (`BOD ATU`, `Ammonia(N)`, `Sld Sus@105C`,...), số lần `WARNING` / `CRITICAL` và mốc cập nhật mới nhất.
+- Thêm 1 bảng tổng hợp mới trên Grafana đọc trực tiếp từ SQL View này.
 
-### Trụ cột 2 — Elasticity thật & Benchmark Scale-out
-- Nâng `KAFKA_PARTITIONS=6` trên topic `water-quality-events`.
-- Triển khai **ECS Service Auto Scaling** (hoặc custom CloudWatch metric đẩy `kafka_consumer_group_lag` mỗi 30 giây):
-  - Khi Producer đẩy tải cao (ví dụ 500–1.000 evt/s kèm sleep mô phỏng xử lý CPU nặng hơn hoặc batch timeout), Consumer lag vượt ngưỡng → AWS tự động scale từ **1 → 3 → 6 Consumer tasks** trong cùng `water-quality-consumer` group.
-  - Khi ngừng burst, AWS tự động scale-in về `1` task để tiết kiệm chi phí.
-- **Thí nghiệm bắt buộc trong báo cáo BTL**: Biểu đồ **Elasticity Timeline** (trục X = thời gian; trục Y = `Producer Rate`, `Consumer Lag`, `Active Consumer Count`, `DB Throughput`) chứng minh hệ thống tự giảm lag về 0 nhờ scale-out mà không rớt hoặc trùng bản ghi.
+### 1.2. Đưa EC2 về cùng vùng `ap-southeast-1` (Singapore) & đo so sánh A/B
+- Dựng lại EC2 (`c7i-flex.large`) ở **`ap-southeast-1` (Singapore)** — cùng vùng với Neon DB — thay cho `ap-southeast-2` (Sydney) ở Seminar.
+- Chạy lại bộ benchmark (`single` vs `batch`, và khảo sát nhanh `batch_size` ở 3–4 mức tiêu biểu) để lập bảng so sánh A/B định lượng: **Cross-region (Sydney ↔ Singapore)** vs **Same-region (Singapore ↔ Singapore)**.
 
-### Trụ cột 3 — Bảo mật Production & Observability
-- **Loại bỏ phụ thuộc SSH Tunnel khi demo nhiều client**: Thêm `FastAPI Ingestion Gateway` đứng sau HTTPS (Caddy / Nginx + Let's Encrypt hoặc AWS ALB) xác thực bằng `X-API-Key` / Bearer token, đẩy vào Kafka nội bộ (hoặc bật Kafka `SASL_SSL`).
-- **Quản lý bí mật chuẩn Cloud**: Chuyển `.env` sang **AWS Secrets Manager** (ECS inject trực tiếp vào biến môi trường lúc khởi động container).
-- **Observability hợp nhất**: Đẩy log JSON từ `consumer/app/main.py` vào **AWS CloudWatch Logs**; tạo thêm Grafana panel theo dõi CPU/RAM container + Kafka Consumer Lag song song với chất lượng nước.
+### 1.3. Siết chặt đo lường & tin cậy (`pipeline_runs` & `rejected_events` dedup log)
+- **Tự động ghi bảng `pipeline_runs`:** `benchmarks/evaluate_run.py` (hoặc Producer/Consumer) tự ghi metadata từng lần chạy (`run_id`, `consumer_mode`, `batch_size`, `target_rate_eps`, `planned_events`, `started_at`, `finished_at`) vào bảng `pipeline_runs` trên Neon để truy vấn đối chiếu ngay trong SQL/Grafana.
+- **Log dedup cho cả `rejected_events`:** Bổ sung tính `deduped_rejected = len(rejected_records) - inserted_rejected` trong `consumer/app/db.py` & in log cảnh báo `DEDUP_REPLAY` trong `consumer/app/main.py` ngay cả khi bản ghi replay là dòng nhiễu (`NO FLOW/SAMP`).
 
-### Trụ cột 4 — Sửa & tích hợp ML Worker nhẹ (`BOD ATU`, `Ammonia(N)`)
-Qua kiểm tra mã nguồn hiện có trong `Đánh giá mô hình/`:
-- `offline-model.py` dùng `RandomForestRegressor` với `bod_lag_1, bod_lag_2, bod_lag_3, easting, northing` (chạy batch tĩnh từng trạm).
-- `online-model.py` hiện **chỉ đưa mỗi `timestamp` chuẩn hóa Welford vào `SGDRegressor`**, khiến `R² < 0` trên toàn bộ 1.517 trạm trong `ONLINE_SGD_BOD_ATU_metrics_all_stations_sorted.csv` (vì nồng độ BOD không phụ thuộc tuyến tính vào thời gian tuyệt đối!).
+### 1.4. AWS Lambda cảnh báo tự động khi có mẫu `CRITICAL` (`$0` Free Tier)
+- Viết 1 hàm **AWS Lambda** gọn nhẹ (~30–40 dòng Python) kết nối Webhook **Telegram** hoặc **Discord** (không cần dựng mail server).
+- Khi Consumer phát hiện bản ghi có `alert_level == "CRITICAL"`, gửi bất đồng bộ payload cảnh báo (`station_name`, `determinand`, `result_value`, `unit`, `event_time`) sang Lambda Function URL để bắn thông báo thời gian thực.
 
-**Cách nâng cấp đúng & nhẹ cho BTL**:
-1. Giữ nguyên pipeline chính (`water-quality-consumer`), **tạo thêm dịch vụ `ml-worker/`** chạy với consumer group riêng (`KAFKA_CONSUMER_GROUP=ml-worker`), không làm chậm đường ghi dữ liệu thô (`water_measurements`).
-2. `ml-worker` lọc sự kiện `BOD ATU` và `Ammonia(N)`, duy trì sliding buffer 3 mẫu gần nhất theo `station_id` (lấy từ RAM + warm-up từ Neon DB khi restart) để tạo vector đặc trưng hợp lệ:
-   - `lag_1`, `lag_2`, `lag_3`
-   - `rolling_mean_3`, `delta_1_2`
-   - `sin(month)`, `cos(month)` (tính mùa vụ thay cho raw timestamp)
-3. So sánh trực tiếp trên cùng dữ liệu 2025:
-   - Offline Random Forest (`offline-model.py` làm chuẩn đối chiếu) vs Online `SGDRegressor` / `River` đã sửa feature lag + mùa vụ.
-   - Dự đoán giá trị kế tiếp và điền khuyết khi trạm bị mất mẫu (`NO FLOW/SAMP`), ghi kết quả vào bảng **`ml_predictions`** đã tạo sẵn từ Seminar.
-4. Hiển thị đường **Actual vs ML Predicted** trên một row panel mới trong Grafana dashboard `water-quality-monitoring.json`.
+---
+
+## Nhóm 2 — Thực hiện tiếp nếu đủ thời gian (~2–3 giờ)
+
+### 2.1. FastAPI HTTPS Ingestion Gateway (thay SSH Tunnel cho nhiều client)
+- Thêm 1 service nhẹ `ingestion-api/` viết bằng **FastAPI** nhận `POST /events` (xác thực header `X-API-Key`), validate sơ bộ schema rồi đẩy thẳng vào `kafka:9092` nội bộ.
+- Đặt sau reverse proxy **Caddy** (tự động cấp chứng chỉ TLS Let's Encrypt với domain miễn phí như `nip.io` / DuckDNS) để nhiều trạm/client bên ngoài gửi dữ liệu qua `HTTPS` mà không cần chia sẻ khóa SSH `.pem`.
+
+---
+
+## Phạm vi đã chủ động cắt gọn (Out of Scope cho BTL)
+
+Để bảo đảm chất lượng và kịp hạn `12/12` với quỹ thời gian hạn chế của nhóm, BTL **chủ động không triển khai** các hạng mục vận hành nặng sau:
+- **Không** triển khai cụm Kubernetes `k3s + KEDA` autoscaler. *(Ghi chú: nếu cần minh họa mở rộng ngang `1 → 3` Consumer trên 3 partitions của Kafka, có thể dùng trực tiếp `docker compose up -d --scale consumer=3` sau khi bỏ `container_name` cố định).*
+- **Không** triển khai `Terraform IaC` và `AWS SSM Parameter Store` (giữ triển khai Docker Compose + `.env` gọn nhẹ).
+- **Không** cài thêm `Prometheus / cAdvisor / Kafka Exporter` trên Grafana.
+- **Không** tích hợp `ML Worker` (đã gỡ bỏ bảng chờ `ml_predictions` khỏi `db/schema.sql`, `db/init_db.py` và Neon DB ngày `26/11/2026` để schema gọn sạch đúng 3 bảng).

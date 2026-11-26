@@ -15,7 +15,6 @@ EXPECTED_TABLES = (
     "water_measurements",
     "rejected_events",
     "pipeline_runs",
-    "ml_predictions",
 )
 
 

@@ -38,7 +38,7 @@ def _make_payload(**overrides):
 
 
 def test_real_sample_csv_rows_validate_and_reject_noise():
-    sample_csv = PROJECT_ROOT.parent / "Đánh giá mô hình" / "2025-C_sample.csv"
+    sample_csv = PROJECT_ROOT / "data" / "2025-C_sample.csv"
     assert sample_csv.is_file()
 
     valid_count = 0
